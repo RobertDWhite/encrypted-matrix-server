@@ -1,0 +1,147 @@
+version: '3'
+
+services:
+
+# Synapse host for your Matrix instance
+  synapse:
+    image: matrixdotorg/synapse:latest
+    restart: always
+    volumes:
+      - ./data:/data
+      - ./homeserver.yaml:/data/homeserver.yaml
+      - ./secrets/:/synapse-secrets/
+      - ./letsencrypt:/etc/letsencrypt
+      - ./nginx-proxy-manager/.well-known/matrix:/var/www/matrix.white.fm/.well-known/matrix
+    environment:
+      - SYNAPSE_SERVER_NAME=YOURSERVERNAME
+      - SYNAPSE_REPORT_STATS=yes
+      - SYNAPSE_NO_TLS=true
+      - SYNAPSE_DB_HOST=postgres
+      - SYNAPSE_DB_NAME=synapse
+      - SYNAPSE_DB_USER=synapse_user
+      - SYNAPSE_DB_PASSWORD=YOURSECRETPASSWORD
+      - SYNAPSE_ADMIN_USER=admin
+      - SYNAPSE_ADMIN_PASS=$$(cat /synapse-secrets/matrix_admin_pass.txt)
+    ports:
+      - "8008:8008"
+      - "8448:8448"
+    labels:
+      - 'nginx.enable=true'
+      - 'nginx.http.routers.matrix.rule=Host(`YOURSERVERNAME`)'
+      - 'nginx.http.routers.matrix.tls=true'
+      - 'nginx.http.services.matrix.loadbalancer.server.port=8008'
+ 
+# Postgres DB host for your Matrix instance
+  postgres:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: YOURSECRETPASSWORD
+      POSTGRES_USER: synapse_user
+      POSTGRES_DB: synapse
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - ./secrets/postgresmatrix:/var/lib/postgresql/data
+      
+ # Redis host for your Matrix instance
+  redis:
+    image: redis
+    container_name: redis
+    restart: always
+
+# Nginx Proxy Manager
+  app:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    environment:
+      DB_MYSQL_HOST: "db"
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: "npm"
+      DB_MYSQL_PASSWORD: "npm"
+      DB_MYSQL_NAME: "npm"
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+      - ./nginx-proxy-manager/.well-known/matrix:/var/www/matrix.white.fm/.well-known/matrix
+      
+ # the database for your Matrix instance
+ db:
+    image: 'jc21/mariadb-aria:latest'
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 'npm'
+      MYSQL_DATABASE: 'npm'
+      MYSQL_USER: 'npm'
+      MYSQL_PASSWORD: 'npm'
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+
+# The chat interface for your Matrix instance
+  element:
+    image: vectorim/element-web:latest
+    restart: unless-stopped
+    volumes:
+      - ./element-config.json:/app/config.json
+    ports:
+      - "8080:80"
+
+# Maubot (https://github.com/maubot/maubot)
+  maubot:
+      image: 'dock.mau.dev/maubot/maubot:latest'
+      restart: unless-stopped
+      ports:
+          - '29316:29316'
+      volumes:
+          - './maubot:/data:z'
+          
+# This container is the database for Maubot          
+  postgres-maubot:
+    image: 'postgres:latest'
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: postgres # The PostgreSQL user (useful to connect to the database)
+      POSTGRES_PASSWORD: YOURSECRETPASSWORD # The PostgreSQL password (useful to connect to the database)
+      POSTGRES_DB: postgres # The PostgreSQL default database (automatically created at first launch)         
+ 
+ # Use this container as an SMTP relay routing through Google
+  postfix:
+  # follow the instructions for using Google's SMTP relay here: https://apps.google.com/supportwidget/articlehome?hl=en&article_url=https%3A%2F%2Fsupport.google.com%2Fa%2Fanswer%2F2956491%3Fhl%3Den&assistant_id=generic-unu&product_context=2956491&product_name=UnuFlow&trigger_context=a
+    image: juanluisbaptiste/postfix:alpine
+    container_name: postfix
+    restart: unless-stopped
+    expose:
+      - 25
+    environment:
+      SMTP_SERVER: smtp-relay.gmail.com
+      SMTP_PORT: 587
+      SMTP_USERNAME: YOURUSER@DOMAIN
+      SMTP_PASSWORD: YOURAPPLICATIONPASSWORD
+      SERVER_HOSTNAME: YOURSERVERNAME
+
+#Use this container as a webhook relay to send encrypted webhook messages to your server
+  webhooks:
+    depends_on:
+      - synapse
+    environment:
+      ALLOW_UNICODE: 'True'
+      DISPLAY_APP_NAME: 'True'
+      KNOWN_TOKENS: 'EXAMPLETOKEN,!roomID:YOURSERVERNAME.COM,NetworkNotifications'
+      MATRIX_ADMIN_ROOM: '!adminRoomID:YOURSERVERNAME.COM'
+      MATRIX_DEVICE:  matrix-ubuntu-docker
+      MATRIX_PASSWORD: 'YOURSUPERSECRETPASSWORD'
+      MATRIX_SERVER: https://matrix.YOURDOMAIN.COM
+      MATRIX_SSLVERIFY: 'True'
+      MATRIX_USERID: '@webhooks:YOURDOMAIN.COM'
+      MESSAGE_FORMAT: yaml
+      USE_MARKDOWN: 'True'
+    image: jceloria/matrix-encrypted-webhooks:latest
+    ports:
+      - 8000:8000
+    restart: unless-stopped
+    volumes:
+      - /opt/data/matrix/webhooks/config:/webhooks-config
