@@ -90,24 +90,24 @@ services:
       - "8080:80"
 
 # Maubot (https://github.com/maubot/maubot)
-  maubot:
-      image: 'dock.mau.dev/maubot/maubot:latest'
-      restart: unless-stopped
-      ports:
-          - '29316:29316'
-      volumes:
-          - './maubot:/data:z'
+#  maubot:
+#      image: 'dock.mau.dev/maubot/maubot:latest'
+#      restart: unless-stopped
+#      ports:
+#          - '29316:29316'
+#      volumes:
+#          - './maubot:/data:z'
           
 # This container is the database for Maubot          
-  postgres-maubot:
-    image: 'postgres:latest'
-    ports:
-      - 5432:5432
-    environment:
-      POSTGRES_USER: postgres # The PostgreSQL user (useful to connect to the database)
-      POSTGRES_PASSWORD: YOURSECRETPASSWORD # The PostgreSQL password (useful to connect to the database)
-      POSTGRES_DB: postgres # The PostgreSQL default database (automatically created at first launch)         
- 
+#  postgres-maubot:
+#    image: 'postgres:latest'
+#    ports:
+#      - 5432:5432
+#    environment:
+#      POSTGRES_USER: postgres # The PostgreSQL user (useful to connect to the database)
+#      POSTGRES_PASSWORD: YOURSECRETPASSWORD # The PostgreSQL password (useful to connect to the database)
+#      POSTGRES_DB: postgres # The PostgreSQL default database (automatically created at first launch)         
+# 
  # Use this container as an SMTP relay routing through Google
   postfix:
   # follow the instructions for using Google's SMTP relay here: https://apps.google.com/supportwidget/articlehome?hl=en&article_url=https%3A%2F%2Fsupport.google.com%2Fa%2Fanswer%2F2956491%3Fhl%3Den&assistant_id=generic-unu&product_context=2956491&product_name=UnuFlow&trigger_context=a
@@ -124,24 +124,24 @@ services:
       SERVER_HOSTNAME: YOURSERVERNAME
 
 #Use this container as a webhook relay to send encrypted webhook messages to your server
-  webhooks:
-    depends_on:
-      - synapse
-    environment:
-      ALLOW_UNICODE: 'True'
-      DISPLAY_APP_NAME: 'True'
-      KNOWN_TOKENS: 'EXAMPLETOKEN,!roomID:YOURSERVERNAME.COM,NetworkNotifications'
-      MATRIX_ADMIN_ROOM: '!adminRoomID:YOURSERVERNAME.COM'
-      MATRIX_DEVICE:  matrix-ubuntu-docker
-      MATRIX_PASSWORD: 'YOURSUPERSECRETPASSWORD'
-      MATRIX_SERVER: https://matrix.YOURDOMAIN.COM
-      MATRIX_SSLVERIFY: 'True'
-      MATRIX_USERID: '@webhooks:YOURDOMAIN.COM'
-      MESSAGE_FORMAT: yaml
-      USE_MARKDOWN: 'True'
-    image: jceloria/matrix-encrypted-webhooks:latest
-    ports:
-      - 8000:8000
-    restart: unless-stopped
-    volumes:
-      - /opt/data/matrix/webhooks/config:/webhooks-config
+#  webhooks:
+#    depends_on:
+#      - synapse
+#    environment:
+#      ALLOW_UNICODE: 'True'
+#      DISPLAY_APP_NAME: 'True'
+#      KNOWN_TOKENS: 'EXAMPLETOKEN,!roomID:YOURSERVERNAME.COM,NetworkNotifications'
+#      MATRIX_ADMIN_ROOM: '!adminRoomID:YOURSERVERNAME.COM'
+#      MATRIX_DEVICE:  matrix-ubuntu-docker
+#      MATRIX_PASSWORD: 'YOURSUPERSECRETPASSWORD'
+#      MATRIX_SERVER: https://matrix.YOURDOMAIN.COM
+#      MATRIX_SSLVERIFY: 'True'
+#      MATRIX_USERID: '@webhooks:YOURDOMAIN.COM'
+#      MESSAGE_FORMAT: yaml
+#      USE_MARKDOWN: 'True'
+#    image: jceloria/matrix-encrypted-webhooks:latest
+#    ports:
+#      - 8000:8000
+#    restart: unless-stopped
+#    volumes:
+#      - /opt/data/matrix/webhooks/config:/webhooks-config
