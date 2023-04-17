@@ -50,7 +50,7 @@ server:
     hostname: 0.0.0.0
     port: 29316
     # Public base URL where the server is visible.
-    public_url: https://maubot.white.fm
+    public_url: https://maubot.YOURSERVERNAME.TLD
     # The base path for the UI.
     ui_base_path: /_matrix/maubot
     # The base path for plugin endpoints. The instance ID will be appended directly.
